@@ -4,6 +4,8 @@ export default function PlayerControls({
   isPaused, 
   onTogglePlay, 
   onNext, 
+  onDiscover,
+  showDiscover,
   position, 
   duration,
   onSeek 
@@ -27,6 +29,19 @@ export default function PlayerControls({
 
   return (
     <div style={styles.container}>
+      {/* Botón de descubrir (izquierda) */}
+      {showDiscover && (
+        <button 
+          onClick={onDiscover}
+          style={styles.discoverButton}
+          className="discover-btn"
+        >
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
+            <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+          </svg>
+        </button>
+      )}
+      
       {/* Botón de Play/Pause circular */}
       <button 
         onClick={onTogglePlay}
@@ -62,16 +77,18 @@ export default function PlayerControls({
         <span style={styles.time}>{formatTime(duration)}</span>
       </div>
 
-      {/* Botón de siguiente */}
-      <button 
-        onClick={onNext}
-        style={styles.nextButton}
-        className="next-btn"
-      >
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="white">
-          <path d="M6 4l12 8-12 8V4zm13 0v16h2V4h-2z"/>
-        </svg>
-      </button>
+      {/* Botón de siguiente (derecha) */}
+      {showDiscover && (
+        <button 
+          onClick={onNext}
+          style={styles.nextButton}
+          className="next-btn"
+        >
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
+            <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/>
+          </svg>
+        </button>
+      )}
     </div>
   );
 }
@@ -147,6 +164,22 @@ const styles = {
     textAlign: 'center',
     textShadow: '0 2px 4px rgba(0,0,0,0.5)'
   },
+  discoverButton: {
+    position: 'absolute',
+    left: '20px',
+    top: '0',
+    width: '60px',
+    height: '60px',
+    borderRadius: '50%',
+    background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+    border: 'none',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    boxShadow: '0 8px 20px rgba(245, 87, 108, 0.4)',
+    transition: 'all 0.3s ease'
+  },
   nextButton: {
     position: 'absolute',
     right: '20px',
@@ -154,13 +187,13 @@ const styles = {
     width: '60px',
     height: '60px',
     borderRadius: '50%',
-    background: 'rgba(255, 255, 255, 0.1)',
-    backdropFilter: 'blur(10px)',
-    border: '2px solid rgba(255, 255, 255, 0.2)',
+    background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+    border: 'none',
     cursor: 'pointer',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
+    boxShadow: '0 8px 20px rgba(79, 172, 254, 0.4)',
     transition: 'all 0.3s ease'
   }
 };

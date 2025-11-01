@@ -171,7 +171,7 @@ export default function GameScreen({ token, onBack }) {
                 justifyContent: 'center',
                 background: 'transparent'
               }}>
-                <MysteryAlbumCover size={320} />
+                <MysteryAlbumCover size={260} />
               </div>
             ) : (
               // Mostrar la carátula real después de descubrir
@@ -195,7 +195,12 @@ export default function GameScreen({ token, onBack }) {
         {/* Información de la canción (solo si se descubrió) */}
         {showInfo && (
           <div style={styles.infoBox}>
-            <h2 style={styles.trackTitle}>{currentTrack.name}</h2>
+            <h2 style={{
+              ...styles.trackTitle,
+              fontSize: `${Math.max(16, Math.min(24, 400 / currentTrack.name.length))}px`
+            }}>
+              {currentTrack.name}
+            </h2>
             <p style={styles.artistName}>{currentTrack.artists[0].name}</p>
             <p style={styles.albumInfo}>
               {currentTrack.album.name} • {currentTrack.album.release_date.slice(0, 4)}
@@ -203,20 +208,6 @@ export default function GameScreen({ token, onBack }) {
           </div>
         )}
 
-        {/* Botones de acción */}
-        <div style={styles.actionButtons}>
-          {!showInfo ? (
-            <button onClick={handleDiscovery} style={styles.discoverButton}>
-              <span style={styles.buttonIcon}>🔍</span>
-              Descubrir
-            </button>
-          ) : (
-            <button onClick={nextTrack} style={styles.nextTrackButton}>
-              <span style={styles.buttonIcon}>⏭️</span>
-              Siguiente canción
-            </button>
-          )}
-        </div>
       </div>
 
       {/* Controles del reproductor */}
@@ -224,6 +215,8 @@ export default function GameScreen({ token, onBack }) {
         isPaused={isPaused}
         onTogglePlay={togglePlay}
         onNext={nextTrack}
+        onDiscover={handleDiscovery}
+        showDiscover={true}
         position={position}
         duration={duration}
         onSeek={seek}
@@ -263,10 +256,12 @@ const styles = {
     flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: '100vh',
+    height: '100vh',
+    maxHeight: '100vh',
     padding: '20px',
     position: 'relative',
-    zIndex: 1
+    zIndex: 1,
+    overflow: 'hidden'
   },
   loadingContainer: {
     display: 'flex',
@@ -315,10 +310,10 @@ const styles = {
   },
   backButton: {
     position: 'absolute',
-    top: '30px',
-    left: '30px',
-    width: '45px',
-    height: '45px',
+    top: '20px',
+    left: '20px',
+    width: '40px',
+    height: '40px',
     borderRadius: '50%',
     background: 'rgba(255, 255, 255, 0.1)',
     backdropFilter: 'blur(10px)',
@@ -332,32 +327,33 @@ const styles = {
   },
   trackCounter: {
     position: 'absolute',
-    top: '30px',
+    top: '20px',
     color: 'white',
-    fontSize: '14px',
+    fontSize: '12px',
     fontWeight: '500',
     textShadow: '0 2px 10px rgba(0,0,0,0.5)',
     background: 'rgba(255, 255, 255, 0.1)',
     backdropFilter: 'blur(10px)',
-    padding: '8px 20px',
+    padding: '6px 16px',
     borderRadius: '20px',
     border: '1px solid rgba(255, 255, 255, 0.2)'
   },
   albumContainer: {
     position: 'relative',
-    marginBottom: '40px',
-    perspective: '1000px'
+    marginBottom: '20px',
+    perspective: '1000px',
+    marginTop: '10px'
   },
   albumFlipContainer: {
     position: 'relative',
     transformStyle: 'preserve-3d'
   },
   albumArt: {
-    width: '320px',
-    height: '320px',
+    width: '260px',
+    height: '260px',
     borderRadius: '50%',
     boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
-    border: '8px solid rgba(255, 255, 255, 0.1)',
+    border: '6px solid rgba(255, 255, 255, 0.1)',
     objectFit: 'cover'
   },
   vinylOverlay: {
@@ -365,78 +361,46 @@ const styles = {
     top: '50%',
     left: '50%',
     transform: 'translate(-50%, -50%)',
-    width: '80px',
-    height: '80px',
+    width: '65px',
+    height: '65px',
     borderRadius: '50%',
     background: 'radial-gradient(circle, rgba(0,0,0,0.8) 30%, transparent 70%)',
     pointerEvents: 'none'
   },
   infoBox: {
     textAlign: 'center',
-    marginBottom: '30px',
+    marginBottom: '15px',
     animation: 'fadeIn 0.5s ease',
     background: 'rgba(255, 255, 255, 0.05)',
     backdropFilter: 'blur(20px)',
-    padding: '25px 40px',
-    borderRadius: '20px',
+    padding: '15px 20px',
+    borderRadius: '15px',
     border: '1px solid rgba(255, 255, 255, 0.1)',
-    maxWidth: '400px'
+    maxWidth: '90%',
+    width: '100%',
+    boxSizing: 'border-box'
   },
   trackTitle: {
     color: 'white',
-    fontSize: '28px',
     fontWeight: 'bold',
-    margin: '0 0 10px 0',
-    textShadow: '0 2px 10px rgba(0,0,0,0.5)'
+    margin: '0 0 8px 0',
+    textShadow: '0 2px 10px rgba(0,0,0,0.5)',
+    lineHeight: '1.2',
+    wordBreak: 'break-word'
   },
   artistName: {
     color: 'rgba(255, 255, 255, 0.9)',
-    fontSize: '18px',
-    margin: '0 0 8px 0',
+    fontSize: '16px',
+    margin: '0 0 6px 0',
     textShadow: '0 2px 8px rgba(0,0,0,0.5)'
   },
   albumInfo: {
     color: 'rgba(255, 255, 255, 0.6)',
-    fontSize: '14px',
+    fontSize: '13px',
     margin: '0',
-    textShadow: '0 2px 6px rgba(0,0,0,0.5)'
+    textShadow: '0 2px 6px rgba(0,0,0,0.5)',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap'
   },
-  actionButtons: {
-    display: 'flex',
-    gap: '15px',
-    marginBottom: '150px'
-  },
-  discoverButton: {
-    padding: '15px 40px',
-    fontSize: '18px',
-    fontWeight: 'bold',
-    borderRadius: '30px',
-    background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-    color: 'white',
-    border: 'none',
-    cursor: 'pointer',
-    boxShadow: '0 10px 30px rgba(245, 87, 108, 0.4)',
-    transition: 'all 0.3s ease',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '10px'
-  },
-  nextTrackButton: {
-    padding: '15px 40px',
-    fontSize: '18px',
-    fontWeight: 'bold',
-    borderRadius: '30px',
-    background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
-    color: 'white',
-    border: 'none',
-    cursor: 'pointer',
-    boxShadow: '0 10px 30px rgba(79, 172, 254, 0.4)',
-    transition: 'all 0.3s ease',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '10px'
-  },
-  buttonIcon: {
-    fontSize: '20px'
-  }
 };
