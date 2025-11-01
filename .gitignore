@@ -1,0 +1,12 @@
+# Ignore VS Code settings folder
+.vscode/
+
+# Ignore all hidden files and directories
+.*
+
+# But keep Git metadata and this .gitignore itself
+!/.gitignore
+!/.git/
+
+# Node modules
+node_modules/
