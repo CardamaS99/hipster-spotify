@@ -28,6 +28,12 @@ export default function App() {
       });
       
       const newToken = response.data.access_token;
+      
+      if (!newToken || newToken === undefined) {
+        console.error("❌ Error: No se recibió access token válido al refrescar");
+        throw new Error("Token inválido recibido");
+      }
+      
       const expiryTime = Date.now() + (3600 * 1000);
       
       localStorage.setItem("spotify_token", newToken);
@@ -55,6 +61,19 @@ export default function App() {
     if (code) {
       axios.post(getTokenURL(), { code })
         .then(res => {
+        
+          if (!res.data.access_token || res.data.access_token === undefined) {
+            console.error("❌ Error: No se recibió access token válido");
+            alert("Error al obtener el token de acceso. Por favor, intenta iniciar sesión nuevamente.");
+            // Limpiar y volver al login
+            localStorage.removeItem("spotify_token");
+            localStorage.removeItem("spotify_refresh_token");
+            localStorage.removeItem("token_expiry");
+            setToken(null);
+            setScreen('login');
+            return;
+          }
+
           localStorage.setItem("spotify_token", res.data.access_token);
           
           // Guardar refresh token si viene en la respuesta
