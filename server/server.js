@@ -5,6 +5,8 @@ import bodyParser from "body-parser";
 import dotenv from "dotenv";
 import cors from "cors";
 
+const PORT = 3000;
+const HOST = "0.0.0.0";
 
 dotenv.config();
 const app = express();
@@ -79,6 +81,6 @@ app.post("/api/refresh", async (req, res) => {
   }
 });
 
-app.listen(3000, () => console.log("Server running on http://localhost:3000"));
+app.listen(PORT, HOST, () => console.log(`Server running on http://${HOST}:${PORT}`));
 
 
