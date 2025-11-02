@@ -36,7 +36,11 @@ export default function PlayerControls({
           style={styles.discoverButton}
           className="discover-btn"
         >
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
+          <svg 
+            style={{ width: '45%', height: '45%' }} 
+            viewBox="0 0 24 24" 
+            fill="white"
+          >
             <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
           </svg>
         </button>
@@ -50,12 +54,20 @@ export default function PlayerControls({
       >
         {isPaused ? (
           // Play icon
-          <svg width="45" height="45" viewBox="0 0 24 24" fill="white">
+          <svg 
+            style={{ width: '50%', height: '50%' }} 
+            viewBox="0 0 24 24" 
+            fill="white"
+          >
             <path d="M8 5v14l11-7z"/>
           </svg>
         ) : (
           // Pause icon
-          <svg width="45" height="45" viewBox="0 0 24 24" fill="white">
+          <svg 
+            style={{ width: '50%', height: '50%' }} 
+            viewBox="0 0 24 24" 
+            fill="white"
+          >
             <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"/>
           </svg>
         )}
@@ -84,7 +96,11 @@ export default function PlayerControls({
           style={styles.nextButton}
           className="next-btn"
         >
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
+          <svg 
+            style={{ width: '45%', height: '45%' }} 
+            viewBox="0 0 24 24" 
+            fill="white"
+          >
             <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/>
           </svg>
         </button>
@@ -96,20 +112,21 @@ export default function PlayerControls({
 const styles = {
   container: {
     position: 'fixed',
-    bottom: '40px',
+    bottom: 'max(20px, 3vh)',
     left: '50%',
     transform: 'translateX(-50%)',
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
-    gap: '20px',
+    gap: 'clamp(12px, 2vh, 20px)',
     zIndex: 100,
     width: '90%',
-    maxWidth: '600px'
+    maxWidth: '600px',
+    paddingBottom: 'env(safe-area-inset-bottom, 0px)'
   },
   playButton: {
-    width: '100px',
-    height: '100px',
+    width: 'clamp(70px, 12vh, 100px)',
+    height: 'clamp(70px, 12vh, 100px)',
     borderRadius: '50%',
     background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
     border: 'none',
@@ -124,12 +141,12 @@ const styles = {
   progressContainer: {
     display: 'flex',
     alignItems: 'center',
-    gap: '15px',
+    gap: 'clamp(8px, 2vw, 15px)',
     width: '100%'
   },
   progressBar: {
     flex: 1,
-    height: '8px',
+    height: 'clamp(6px, 1vh, 8px)',
     background: 'rgba(255, 255, 255, 0.2)',
     borderRadius: '4px',
     cursor: 'pointer',
@@ -146,11 +163,11 @@ const styles = {
   },
   progressHandle: {
     position: 'absolute',
-    right: '-8px',
+    right: 'clamp(-6px, -1vh, -8px)',
     top: '50%',
     transform: 'translateY(-50%)',
-    width: '16px',
-    height: '16px',
+    width: 'clamp(12px, 2vh, 16px)',
+    height: 'clamp(12px, 2vh, 16px)',
     borderRadius: '50%',
     background: 'white',
     boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
@@ -158,18 +175,18 @@ const styles = {
   },
   time: {
     color: 'white',
-    fontSize: '14px',
+    fontSize: 'clamp(11px, 2vh, 14px)',
     fontWeight: '500',
-    minWidth: '45px',
+    minWidth: 'clamp(38px, 8vw, 45px)',
     textAlign: 'center',
     textShadow: '0 2px 4px rgba(0,0,0,0.5)'
   },
   discoverButton: {
     position: 'absolute',
-    left: '20px',
+    left: 'clamp(5px, 2vw, 20px)',
     top: '0',
-    width: '60px',
-    height: '60px',
+    width: 'clamp(50px, 9vh, 60px)',
+    height: 'clamp(50px, 9vh, 60px)',
     borderRadius: '50%',
     background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
     border: 'none',
@@ -182,10 +199,10 @@ const styles = {
   },
   nextButton: {
     position: 'absolute',
-    right: '20px',
+    right: 'clamp(5px, 2vw, 20px)',
     top: '0',
-    width: '60px',
-    height: '60px',
+    width: 'clamp(50px, 9vh, 60px)',
+    height: 'clamp(50px, 9vh, 60px)',
     borderRadius: '50%',
     background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
     border: 'none',

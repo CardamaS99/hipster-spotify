@@ -2,6 +2,47 @@
 
 import axios from 'axios';
 
+// Obtener las playlists del usuario
+export async function getUserPlaylists(token) {
+  const playlists = [];
+  let offset = 0;
+  const limit = 50;
+
+  try {
+    while (true) {
+      const response = await axios.get('https://api.spotify.com/v1/me/playlists', {
+        headers: { Authorization: `Bearer ${token}` },
+        params: {
+          limit,
+          offset,
+          fields: 'items(id,name,tracks.total,images),next'
+        }
+      });
+
+      const items = response.data.items.map(playlist => ({
+        id: playlist.id,
+        name: playlist.name,
+        total: playlist.tracks.total,
+        images: playlist.images
+      }));
+      
+      playlists.push(...items);
+
+      if (!response.data.next) {
+        break;
+      }
+      
+      offset += limit;
+    }
+
+    console.log(`✅ Obtenidas ${playlists.length} playlists del usuario`);
+    return playlists;
+  } catch (error) {
+    console.error("❌ Error al obtener playlists del usuario:", error.response?.data || error.message);
+    throw error;
+  }
+}
+
 // Obtener información de una playlist
 export async function getPlaylistInfo(token, playlistId) {
   try {

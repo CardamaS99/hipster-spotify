@@ -13,6 +13,7 @@ export default function App() {
   const [refreshToken, setRefreshToken] = useState(null);
   const [tokenExpiry, setTokenExpiry] = useState(null);
   const [screen, setScreen] = useState('login');
+  const [gameKey, setGameKey] = useState(0); // Key para forzar remontaje del GameScreen
 
   const handleRefreshToken = async () => {
     const savedRefreshToken = localStorage.getItem("spotify_refresh_token");
@@ -121,7 +122,10 @@ export default function App() {
     <SettingsProvider>
       {screen === 'menu' && (
         <MainMenu 
-          onStart={() => setScreen('game')} 
+          onStart={() => {
+            setGameKey(prev => prev + 1); // Incrementar key para forzar remontaje
+            setScreen('game');
+          }} 
           onSettings={() => setScreen('settings')} 
         />
       )}
@@ -133,7 +137,13 @@ export default function App() {
           onRefreshToken={handleRefreshToken}
         />
       )}
-      {screen === 'game' && <GameScreen token={token} onBack={() => setScreen('menu')} />}
+      {screen === 'game' && (
+        <GameScreen 
+          key={gameKey} 
+          token={token} 
+          onBack={() => setScreen('menu')} 
+        />
+      )}
     </SettingsProvider>
   );
 }

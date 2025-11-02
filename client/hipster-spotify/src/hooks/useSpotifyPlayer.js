@@ -54,8 +54,15 @@ export function useSpotifyPlayer(token) {
 
       // Not Ready
       spotifyPlayer.addListener('not_ready', ({ device_id }) => {
-        console.log('Device ID has gone offline', device_id);
+        console.log('⚠️ Device ID has gone offline', device_id);
         setIsReady(false);
+        // Intentar reconectar después de un momento
+        setTimeout(() => {
+          if (spotifyPlayer) {
+            console.log('Intentando reconectar...');
+            spotifyPlayer.connect();
+          }
+        }, 2000);
       });
 
       // Player state changed
@@ -95,64 +102,181 @@ export function useSpotifyPlayer(token) {
       }
     }, 10000);
 
-    // Cleanup
+    // Cleanup cuando el componente se desmonta
     return () => {
+      console.log('🧹 Limpiando reproductor...');
       clearInterval(checkSpotifySDK);
       clearTimeout(timeout);
+      
+      // Limpiar interval de progreso
+      if (progressInterval.current) {
+        clearInterval(progressInterval.current);
+        progressInterval.current = null;
+      }
+      
+      // Desconectar el player
       if (playerRef.current) {
-        playerRef.current.disconnect();
+        try {
+          console.log('⏸️ Pausando reproducción...');
+          playerRef.current.pause();
+          
+          console.log('🔌 Desconectando player de Spotify...');
+          playerRef.current.disconnect();
+          
+          // Limpiar referencias
+          playerRef.current = null;
+          setPlayer(null);
+          setDeviceId(null);
+          setIsReady(false);
+          setIsPaused(true);
+          setCurrentTrack(null);
+          setPosition(0);
+          setDuration(0);
+          
+          console.log('✅ Reproductor limpiado correctamente');
+        } catch (error) {
+          console.error('Error al limpiar reproductor:', error);
+        }
       }
     };
   }, [token]);
 
-  const transferPlayback = async () => {
+  const transferPlayback = async (retries = 3) => {
     if (!deviceId || !token) {
+      console.error('No hay deviceId o token disponible');
       return false;
     }
 
-    try {
-      await fetch('https://api.spotify.com/v1/me/player', {
-        method: 'PUT',
-        body: JSON.stringify({
-          device_ids: [deviceId],
-          play: false
-        }),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-      });
-      return true;
-    } catch (error) {
-      console.error('Error al transferir reproducción:', error);
-      return false;
+    for (let i = 0; i < retries; i++) {
+      try {
+        console.log(`Intentando transferir reproducción (intento ${i + 1}/${retries})...`);
+        const response = await fetch('https://api.spotify.com/v1/me/player', {
+          method: 'PUT',
+          body: JSON.stringify({
+            device_ids: [deviceId],
+            play: false
+          }),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+        });
+
+        if (response.status === 204 || response.status === 200) {
+          console.log('✅ Reproducción transferida correctamente');
+          return true;
+        } else if (response.status === 404) {
+          console.warn('Device no encontrado, esperando...');
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          continue;
+        } else {
+          console.warn(`Status inesperado: ${response.status}`);
+        }
+      } catch (error) {
+        console.error(`Error en intento ${i + 1}:`, error);
+        if (i < retries - 1) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+      }
     }
+    
+    console.error('❌ No se pudo transferir la reproducción después de varios intentos');
+    return false;
   };
 
-  const play = async (trackUri) => {
+  const play = async (trackUri, retries = 2) => {
     if (!deviceId || !token) {
-      console.error('Player no está listo');
-      return;
+      console.error('Player no está listo - deviceId:', deviceId, 'token:', !!token);
+      return false;
+    }
+
+    if (!trackUri) {
+      console.error('No hay trackUri para reproducir');
+      return false;
+    }
+
+    console.log('🎵 Intentando reproducir:', trackUri);
+
+    for (let attempt = 0; attempt < retries; attempt++) {
+      try {
+        // Verificar y asegurar que el device está activo
+        const isActive = await ensureDeviceActive();
+        
+        if (!isActive) {
+          console.warn(`Intento ${attempt + 1}: Device no está activo`);
+          if (attempt < retries - 1) {
+            await new Promise(resolve => setTimeout(resolve, 1500));
+            continue;
+          }
+          return false;
+        }
+        
+        // Esperar un momento para que el dispositivo esté completamente listo
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        // Ahora reproducir la canción
+        const response = await fetch(`https://api.spotify.com/v1/me/player/play?device_id=${deviceId}`, {
+          method: 'PUT',
+          body: JSON.stringify({ uris: [trackUri] }),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+        });
+
+        if (response.status === 204 || response.status === 200) {
+          console.log('✅ Canción reproduciendo correctamente');
+          return true;
+        } else if (response.status === 404) {
+          console.error('Device no encontrado:', await response.text());
+          if (attempt < retries - 1) {
+            await new Promise(resolve => setTimeout(resolve, 1500));
+            continue;
+          }
+        } else {
+          console.error('Error al reproducir:', response.status, await response.text());
+        }
+      } catch (error) {
+        console.error(`Error en intento ${attempt + 1} de reproducción:`, error);
+        if (attempt < retries - 1) {
+          await new Promise(resolve => setTimeout(resolve, 1500));
+          continue;
+        }
+      }
+    }
+    
+    console.error('❌ No se pudo reproducir después de varios intentos');
+    return false;
+  };
+
+  const ensureDeviceActive = async () => {
+    if (!deviceId || !token || !isReady) {
+      console.log('Device no está listo, esperando...');
+      return false;
     }
 
     try {
-      // Primero, transferir la reproducción a este dispositivo
-      await transferPlayback();
-      
-      // Esperar un momento para que el dispositivo esté listo
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      // Ahora reproducir la canción
-      await fetch(`https://api.spotify.com/v1/me/player/play?device_id=${deviceId}`, {
-        method: 'PUT',
-        body: JSON.stringify({ uris: [trackUri] }),
+      // Verificar el estado actual del player
+      const response = await fetch('https://api.spotify.com/v1/me/player', {
         headers: {
-          'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
-        },
+        }
       });
+
+      if (response.status === 200) {
+        const data = await response.json();
+        if (data.device && data.device.id === deviceId && data.device.is_active) {
+          console.log('✅ Device ya está activo');
+          return true;
+        }
+      }
+
+      // Si no está activo o no hay player activo, transferir
+      console.log('Reactivando device...');
+      return await transferPlayback();
     } catch (error) {
-      console.error('Error al reproducir:', error);
+      console.error('Error al verificar device:', error);
+      return false;
     }
   };
 
@@ -219,6 +343,7 @@ export function useSpotifyPlayer(token) {
     togglePlay,
     nextTrack,
     previousTrack,
-    seek
+    seek,
+    ensureDeviceActive
   };
 }

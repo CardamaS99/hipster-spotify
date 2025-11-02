@@ -14,8 +14,16 @@ export default function GameScreen({ token, onBack }) {
   const [error, setError] = useState(null);
   const { settings } = useSettings();
   
+  // Log para confirmar que el componente se monta desde cero
+  useEffect(() => {
+    console.log('🎮 GameScreen montado - Nueva sesión de juego iniciada');
+    return () => {
+      console.log('🎮 GameScreen desmontado - Finalizando sesión de juego');
+    };
+  }, []);
+  
   // Inicializar el reproductor de Spotify
-  const { isReady, isPaused, play, togglePlay, position, duration, seek } = useSpotifyPlayer(token);
+  const { isReady, isPaused, play, togglePlay, position, duration, seek, ensureDeviceActive } = useSpotifyPlayer(token);
 
   const loadTracks = async () => {
     setLoading(true);
@@ -71,10 +79,23 @@ export default function GameScreen({ token, onBack }) {
   // Reproducir la canción actual cuando cambia el índice o cuando el player está listo
   useEffect(() => {
     if (currentTrack && isReady && currentTrack.uri) {
+      console.log('🎵 Preparando reproducción:', currentTrack.name);
+      
       // Pequeño delay para asegurar que todo esté listo
-      const timer = setTimeout(() => {
-        play(currentTrack.uri);
-      }, 300);
+      const timer = setTimeout(async () => {
+        try {
+          console.log('▶️ Iniciando reproducción...');
+          const success = await play(currentTrack.uri);
+          if (!success) {
+            console.error('❌ Primera reproducción falló, reintentando...');
+            // Segundo intento con más delay
+            await new Promise(resolve => setTimeout(resolve, 1500));
+            await play(currentTrack.uri);
+          }
+        } catch (error) {
+          console.error('❌ Error crítico al reproducir:', error);
+        }
+      }, 500);
       
       return () => clearTimeout(timer);
     }
@@ -87,8 +108,13 @@ export default function GameScreen({ token, onBack }) {
         <div style={styles.loadingContainer}>
           <div style={styles.loadingSpinner} />
           <h3 style={styles.loadingText}>
-            {loading ? '⏳ Cargando canciones...' : '🎵 Inicializando reproductor...'}
+            {loading ? '⏳ Cargando canciones...' : '🎵 Conectando con Spotify...'}
           </h3>
+          {!loading && !isReady && (
+            <p style={styles.loadingSubtext}>
+              Preparando tu sesión de juego
+            </p>
+          )}
         </div>
       </>
     );
@@ -156,22 +182,24 @@ export default function GameScreen({ token, onBack }) {
         </div>
 
         {/* Carátula del álbum */}
-        <div style={styles.albumContainer}>
+        <div style={styles.albumContainer} className="album-container">
           <div style={{
             ...styles.albumFlipContainer,
             animation: showInfo ? 'flipReveal 0.8s ease-in-out' : 'none'
           }}>
             {!showInfo ? (
               // Mostrar el placeholder con interrogación antes de descubrir
-              <div style={{
-                ...styles.albumArt,
-                animation: isPaused ? 'none' : 'rotate 20s linear infinite',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                background: 'transparent'
-              }}>
-                <MysteryAlbumCover size={260} />
+              <div 
+                className="album-art"
+                style={{
+                  ...styles.albumArt,
+                  animation: isPaused ? 'none' : 'rotate 20s linear infinite',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  background: 'transparent'
+                }}>
+                <MysteryAlbumCover />
               </div>
             ) : (
               // Mostrar la carátula real después de descubrir
@@ -179,6 +207,7 @@ export default function GameScreen({ token, onBack }) {
                 <img 
                   src={currentTrack.album.images[0].url} 
                   alt={currentTrack.name}
+                  className="album-art"
                   style={{
                     ...styles.albumArt,
                     animation: isPaused ? 'none' : 'rotate 20s linear infinite'
@@ -188,17 +217,14 @@ export default function GameScreen({ token, onBack }) {
             )}
             
             {/* Overlay con efecto de vinilo */}
-            <div style={styles.vinylOverlay} />
+            <div style={styles.vinylOverlay} className="vinyl-overlay" />
           </div>
         </div>
 
         {/* Información de la canción (solo si se descubrió) */}
         {showInfo && (
           <div style={styles.infoBox}>
-            <h2 style={{
-              ...styles.trackTitle,
-              fontSize: `${Math.max(16, Math.min(24, 400 / currentTrack.name.length))}px`
-            }}>
+            <h2 style={styles.trackTitle}>
               {currentTrack.name}
             </h2>
             <p style={styles.artistName}>{currentTrack.artists[0].name}</p>
@@ -248,6 +274,43 @@ const keyframes = `
     50% { transform: rotateY(90deg) scale(1.1); }
     100% { transform: rotateY(0deg) scale(1); }
   }
+
+  /* Responsive styles for album and controls */
+  .album-container {
+    width: min(60vh, 300px);
+    height: min(60vh, 300px);
+    max-width: 90vw;
+    max-height: 40vh;
+  }
+
+  .album-art {
+    width: 100% !important;
+    height: 100% !important;
+  }
+
+  .vinyl-overlay {
+    width: 25% !important;
+    height: 25% !important;
+  }
+
+  /* Ajustes específicos para pantallas pequeñas */
+  @media (max-height: 700px) {
+    .album-container {
+      max-height: 35vh;
+    }
+  }
+
+  @media (max-height: 600px) {
+    .album-container {
+      max-height: 30vh;
+    }
+  }
+
+  @media (max-height: 500px) {
+    .album-container {
+      max-height: 25vh;
+    }
+  }
 `;
 
 const styles = {
@@ -256,12 +319,14 @@ const styles = {
     flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
-    height: '100vh',
-    maxHeight: '100vh',
-    padding: '20px',
+    minHeight: '100vh',
+    minHeight: '100dvh', // Dynamic viewport height for mobile
+    padding: '15px',
+    paddingBottom: 'max(180px, 25vh)', // Espacio para los controles
     position: 'relative',
     zIndex: 1,
-    overflow: 'hidden'
+    overflow: 'hidden',
+    boxSizing: 'border-box'
   },
   loadingContainer: {
     display: 'flex',
@@ -285,7 +350,16 @@ const styles = {
     textAlign: 'center',
     textShadow: '0 2px 10px rgba(0,0,0,0.5)',
     maxWidth: '500px',
-    padding: '0 20px'
+    padding: '0 20px',
+    margin: '0'
+  },
+  loadingSubtext: {
+    color: 'rgba(255, 255, 255, 0.7)',
+    fontSize: '14px',
+    textAlign: 'center',
+    textShadow: '0 2px 8px rgba(0,0,0,0.5)',
+    marginTop: '10px',
+    fontStyle: 'italic'
   },
   errorIcon: {
     fontSize: '64px'
@@ -340,20 +414,24 @@ const styles = {
   },
   albumContainer: {
     position: 'relative',
-    marginBottom: '20px',
+    marginBottom: '15px',
     perspective: '1000px',
-    marginTop: '10px'
+    marginTop: '5px',
+    width: 'min(60vh, 300px)',
+    height: 'min(60vh, 300px)',
+    maxWidth: '90vw',
+    maxHeight: '40vh'
   },
   albumFlipContainer: {
     position: 'relative',
     transformStyle: 'preserve-3d'
   },
   albumArt: {
-    width: '260px',
-    height: '260px',
+    width: '100%',
+    height: '100%',
     borderRadius: '50%',
     boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
-    border: '6px solid rgba(255, 255, 255, 0.1)',
+    border: 'max(4px, 0.5vh) solid rgba(255, 255, 255, 0.1)',
     objectFit: 'cover'
   },
   vinylOverlay: {
@@ -361,19 +439,19 @@ const styles = {
     top: '50%',
     left: '50%',
     transform: 'translate(-50%, -50%)',
-    width: '65px',
-    height: '65px',
+    width: '25%',
+    height: '25%',
     borderRadius: '50%',
     background: 'radial-gradient(circle, rgba(0,0,0,0.8) 30%, transparent 70%)',
     pointerEvents: 'none'
   },
   infoBox: {
     textAlign: 'center',
-    marginBottom: '15px',
+    marginBottom: '10px',
     animation: 'fadeIn 0.5s ease',
     background: 'rgba(255, 255, 255, 0.05)',
     backdropFilter: 'blur(20px)',
-    padding: '15px 20px',
+    padding: 'clamp(10px, 2vh, 15px) clamp(15px, 3vw, 20px)',
     borderRadius: '15px',
     border: '1px solid rgba(255, 255, 255, 0.1)',
     maxWidth: '90%',
@@ -383,20 +461,21 @@ const styles = {
   trackTitle: {
     color: 'white',
     fontWeight: 'bold',
-    margin: '0 0 8px 0',
+    margin: '0 0 6px 0',
     textShadow: '0 2px 10px rgba(0,0,0,0.5)',
     lineHeight: '1.2',
-    wordBreak: 'break-word'
+    wordBreak: 'break-word',
+    fontSize: 'clamp(16px, 3vh, 24px)'
   },
   artistName: {
     color: 'rgba(255, 255, 255, 0.9)',
-    fontSize: '16px',
-    margin: '0 0 6px 0',
+    fontSize: 'clamp(14px, 2.5vh, 16px)',
+    margin: '0 0 4px 0',
     textShadow: '0 2px 8px rgba(0,0,0,0.5)'
   },
   albumInfo: {
     color: 'rgba(255, 255, 255, 0.6)',
-    fontSize: '13px',
+    fontSize: 'clamp(12px, 2vh, 13px)',
     margin: '0',
     textShadow: '0 2px 6px rgba(0,0,0,0.5)',
     overflow: 'hidden',

@@ -1,10 +1,10 @@
 import React from 'react';
 
-export default function MysteryAlbumCover({ size = 320 }) {
+export default function MysteryAlbumCover() {
   return (
     <svg 
-      width={size} 
-      height={size} 
+      width="100%" 
+      height="100%" 
       viewBox="0 0 320 320" 
       xmlns="http://www.w3.org/2000/svg"
     >
